@@ -7,41 +7,28 @@ import re
 import sqlite3
 from sqlite3 import connect
 
-
-
 def connexion():
-
-
-  conn = connect('/Users/hugofugeray/Desktop/formaIA/scrap/application_scrap_film_brief/film.db')
+  conn = connect('/Users/hugofugeray/Desktop/formaIA/scrap/scrap_imbd_rendu/application_scrap_film_brief/film.db')
   curs = conn.cursor()
   return conn, curs
 
-
-
-
-
 def create_table():
   conn,curs = connexion()
-
-
   try:
-
     curs.execute('''DROP TABLE Film;''')
     print('DROP TABLE --> OK')
-
   except :
-
     print('DROP TABLE --> ERROR')
 
   curs.execute('''CREATE TABLE IF NOT EXISTS Film (
   id  INTEGER PRIMARY KEY AUTOINCREMENT,
-  titre TEXT,
-  annee INTEGER,
+  title TEXT,
+  year INTEGER,
   certificate TEXT,
-  Duree INTEGER,
+  duration INTEGER,
   genre TEXT,
-  note REAL,
-  avis INTEGER,
+  score REAL,
+  rate INTEGER,
   directors TEXT,
   recette VARCHAR)'''
   );
@@ -49,86 +36,43 @@ def create_table():
   conn.commit()
   conn.close()
 
-
-
-
 def scrapping(urls):
-
   conn, curs =connexion()
-
   for url in urls:
       response = requests.get(url)
-
-
-
-      #Si reponse ok recuperation du html
-
       if response.ok:
-
           soup = BeautifulSoup(response.text,'html.parser')
-
       else:
-
           print(f'L\'erreur {reponse.status_code} s\'est produite')
-
       movies_html = soup.find_all('div', 'lister-item')
       movies_list = []
-
       for info in movies_html:
-
-
-
           title = info.find('h3', attrs={'class':'lister-item-header'})
-          title1 = title.find('a')
-          title2 = title1.text
-
-          # movies_list.append(title.text)
-
-          date = info.find('h3', attrs={'class':'lister-item-header'})
-          date1 = date.find('span', attrs={'class':'lister-item-year'})
-          date2=date1.text.replace('(', '').replace(')', '').replace('I ','')
-          date2 = int(date2)
-
-
-          # movies_list.append(date.text.replace('(','').replace(')',''))
-
+          title_1 = title.find('a')
+          title_2 = title_1.text
+          year = info.find('h3', attrs={'class':'lister-item-header'})
+          year_1 = year.find('span', attrs={'class':'lister-item-year'})
+          year_2 = year_1.text.replace('(', '').replace(')', '').replace('I ','')
+          year_2 = int(year_2)
           certificate = info.find('span',{"class": "certificate"})
           if certificate is not None:
               certificate = certificate.text
-
-          # movies_list.append(certificate)
-
-          time = info.find('span',{"class": "runtime"})
-          time1=time.text.replace(' min', '')
-
-          # movies_list.append(time.text.replace(' min', ''))
-
+          duration = info.find('span',{"class": "runtime"})
+          duration_1 = duration.text.replace(' min', '')
           genre = info.find('span',{"class": "genre"})
-          genre1=genre.text.replace('\n', '')
-
-          # movies_list.append(genre.text.replace('\n', '').replace(' ', ''))
-
-          note = info.find('div', attrs={'class':'inline-block ratings-imdb-rating'})
-          note1 = note.find('strong')
-          note2=note1.text
-
-          # movies_list.append(note.text)
-
-          votes = info.find('p', class_='sort-num_votes-visible').contents[3].attrs['data-value']
+          genre_1 =genre.text.replace('\n', '')
+          score = info.find('div', attrs={'class':'inline-block ratings-imdb-rating'})
+          score_1 = score.find('strong')
+          score_2 = score_1.text
+          rate = info.find('p', class_='sort-num_votes-visible').contents[3].attrs['data-value']
           film_director = info.find('p', class_='').text
-          direc = film_director.split(':')[1]
-          direc1 = direc.split('|')[0].replace('\n', '')
-
-          for gross in soup.find_all('p', class_='sort-num_votes-visible'):
-
-
+          directors = film_director.split(':')[1]
+          directors_1 = directors.split('|')[0].replace('\n', '')
+          for recette in soup.find_all('p', class_='sort-num_votes-visible'):
               try:
-                gross = info.find('p', class_='sort-num_votes-visible').contents[9].attrs['data-value'].replace(',','')
-                gross = int(gross)
+                recette = info.find('p', class_='sort-num_votes-visible').contents[9].attrs['data-value'].replace(',','')
+                recette = int(recette)
               except IndexError:
-                gross = None
-
-          curs.execute("INSERT INTO Film (titre, annee, certificate, Duree, genre, note, avis, directors, recette) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);", (title2, date2, certificate, time1, genre1, note2, votes, direc1, gross))
+                recette = None
+          curs.execute("INSERT INTO Film (title, year, certificate, duration, genre, score, rate, directors, recette) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);", (title_2, year_2, certificate, duration_1, genre_1, score_2, rate, directors, recette))
           conn.commit()
-
-
